@@ -1,0 +1,107 @@
+---
+title: "test"
+output: html_document
+date: "2024-03-14"
+---
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(ggplot2)
+```
+
+
+```{r}
+titanic <- read.csv(paste0(getwd(), "/Documents/Projects/spaceship_titanic/data/train.csv"),
+                    header = T)
+
+titanic_test <- read.csv(paste0(getwd(), "/Documents/Projects/spaceship_titanic/data/test.csv"),
+                    header = T)
+```
+
+```{r}
+titanic_test_clean <-
+  titanic_test %>%
+    mutate_all(~ifelse(. == "", NA, .)) %>%
+    mutate_at(vars('CryoSleep', 'VIP'),
+              ~case_when(. == 'True' ~ 1,
+                         . == 'False' ~ 0,
+                         TRUE ~ NA)) %>%
+    mutate_at(vars('RoomService', 'VRDeck', 'ShoppingMall', 'Spa', 'FoodCourt'),
+              ~replace_na(., 0)) %>%
+    separate(Cabin, into = c('CabinPrefix', 'CabinNo', 'CabinSuffix'), sep = '/') %>%
+    mutate(TotalSpent = replace_na(RoomService, 0) + 
+                        replace_na(VRDeck, 0) +
+                        replace_na(ShoppingMall, 0) +
+                        replace_na(Spa, 0) +
+                        replace_na(FoodCourt, 0),
+           CryoSleep = ifelse(TotalSpent > 1, 0, CryoSleep),
+           HomePlanet = case_when(CabinPrefix %in% c('A', 'B', 'C', 'T') ~ 'Europa',
+                                   CabinPrefix == 'G' ~ 'Earth',
+                                   CabinPrefix == 'D' ~ 'Mars',
+                                   TRUE ~ HomePlanet),
+           VIP = ifelse(is.na(VIP), 0, VIP))
+```
+
+```{r}
+titanic_clean <-
+  titanic %>%
+    mutate_all(~ifelse(. == "", NA, .)) %>%
+    mutate_at(vars('CryoSleep', 'VIP', 'Transported'),
+              ~case_when(. == 'True' ~ 1,
+                         . == 'False' ~ 0,
+                         TRUE ~ NA)) %>%
+    mutate_at(vars('RoomService', 'VRDeck', 'ShoppingMall', 'Spa', 'FoodCourt'),
+              ~replace_na(., 0)) %>%
+    separate(Cabin, into = c('CabinPrefix', 'CabinNo', 'CabinSuffix'), sep = '/') %>%
+    mutate(TotalSpent = replace_na(RoomService, 0) + 
+                        replace_na(VRDeck, 0) +
+                        replace_na(ShoppingMall, 0) +
+                        replace_na(Spa, 0) +
+                        replace_na(FoodCourt, 0),
+           CryoSleep = ifelse(TotalSpent > 1, 0, CryoSleep),
+           HomePlanet = case_when(CabinPrefix %in% c('A', 'B', 'C', 'T') ~ 'Europa',
+                                   CabinPrefix == 'G' ~ 'Earth',
+                                   CabinPrefix == 'D' ~ 'Mars',
+                                   TRUE ~ HomePlanet),
+           VIP = ifelse(is.na(VIP), 0, VIP))
+```
+
+
+
+```{r}
+titanic_clean %>%
+  filter(CryoSleep == 0, TotalSpent == 0) %>%
+  group_by(Age) %>%
+  summarize(count = n()) %>%
+  arrange(Age) %>%
+  ungroup() %>%
+  mutate(cumSum = cumsum(count),
+         perc = count / sum(count), 
+         cumPerc = cumsum(perc))
+```
+
+
+```{r}
+titanic_clean %>%
+  filter(TotalSpent == 0, CryoSleep == 1) %>%
+  group_by(Age) %>%
+  summarize(count = n()) %>%
+  ungroup() %>%
+  arrange(Age) %>%
+  mutate(cumCount = cumsum(count),
+         perc = count/sum(count),
+         cumPerc = cumsum(perc))
+```
+
+
+
+```{r}
+titanic_clean %>%
+  filter(Age %in% c(18, 19)) %>%
+  group_by(Age, CabinPrefix, HomePlanet) %>%
+  summarize(count = n())
+```
+
+
+
+
+
